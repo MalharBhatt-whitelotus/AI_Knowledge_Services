@@ -8,12 +8,13 @@ class FileRequest(BaseModel):
     uploaded_at: datetime = Field(...) 
 
 class FileResponse(BaseModel):
-    id: int = Field(...)
-    file_name: str = Field(..., min_length=1, max_length=100)
-    file: UploadFile = Field(...)
-    uploaded_at: datetime = Field(...) 
+    id: int
+    file_name: str
+    file: UploadFile
+    uploaded_at: datetime
 
 class FileDetailsRequest(BaseModel):
+    file_id: int = Field(...)
     file_name: str = Field(..., min_length=1, max_length=100)
     file_path: str = Field(..., min_length=1, max_length=100)
     stored_filename: str = Field(..., min_length=1, max_length=100)
@@ -22,11 +23,12 @@ class FileDetailsRequest(BaseModel):
     content: str = Field(...)
 
 class FileDetailsResponse(BaseModel):
-    id: int = Field(...)
-    file_name: str = Field(..., min_length=1, max_length=100)
-    file_path: str = Field(..., min_length=1, max_length=100)
-    stored_filename: str = Field(..., min_length=1, max_length=100)
-    uploaded_at: datetime = Field(...)
-    filesize: int = Field(..., le=10)
-    content: str = Field(...)
+    id: int
+    file_id : int
+    file_name: str
+    file_path: str 
+    stored_filename: str 
+    uploaded_at: datetime
+    filesize: int 
+    content: str
     summery: str
