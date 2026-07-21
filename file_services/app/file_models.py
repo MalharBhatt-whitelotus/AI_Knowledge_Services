@@ -10,7 +10,7 @@ class File(Base):
     file = Column(LargeBinary, nullable=False)
     uploaded_at = Column(DateTime, nullable=False)
 
-class File_Details(Base):
+class FileDetail(Base):
     __tablename__ = "file_details"
 
     id = Column(Integer, primary_key=True)
