@@ -5,7 +5,7 @@ from fastapi import APIRouter, status, Depends
 
 import file_service as service
 from .file_database import get_db
-from .file_schemas import FileRequest, FileResponse
+from .file_schemas import FileRequest, FileResponse, FileDetailsResponse
 
 file_router = APIRouter(prefix="/file", tags=["files"])
 
@@ -13,8 +13,8 @@ file_router = APIRouter(prefix="/file", tags=["files"])
 async def health_check():
     return {"status":"ok","service":"file_services"}
 
-@file_router.post("/upload", response_model=FileResponse, status_code=status.HTTP_201_CREATED)
-async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)):
+@file_router.post("/upload", response_model=FileDetailsResponse, status_code=status.HTTP_201_CREATED)
+async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)) -> FileDetailsResponse:
     """
     Upload and store a new file record.
 
@@ -33,4 +33,9 @@ async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)
         database-related errors.
     """
     result = await service.create_file(file_data = file_data, db = db)
+    return result
+
+@file_router.delete("/delete/{id}", status_code=200)
+async def delete_file(file_id: int, db: AsyncSession = Depends(get_db)):
+    result = await service.delete_file(id, db)
     return result

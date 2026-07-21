@@ -38,6 +38,7 @@ async def get_file_by_filename(
 
 
 async def add_file_details(
+        file_id: int,
         file_name: str, 
         file_path: str, 
         stored_filename: str, 
@@ -48,6 +49,7 @@ async def add_file_details(
         ) -> FileDetailsResponse:
     
     file_details = FileDetail(
+        file_id = file_id,
         file_name = file_name,
         file_path = file_path,
         stored_filename = stored_filename,
@@ -72,3 +74,45 @@ async def get_file_detials_by_filename(
     file = result.scalar_one_or_none()
     
     return file
+
+
+async def get_file_by_id(file_id: int, db: AsyncSession) -> FileResponse:
+    result = await db.execute(select(File).where(File.id == file_id))
+    file = result.scalar_one_or_none()
+    return file 
+
+
+async def get_file_details_by_id(id: int, db: AsyncSession) -> FileDetailsResponse | None:
+    result = await db. execute(select(FileDetail).where(File.id == id))
+    file_details = result.scalar_one_or_none()
+    return file_details
+
+
+async def delete_file(file_id: int, db: AsyncSession) -> FileResponse:
+    result = await db.execute(select(File).where(File.id == file_id))
+    file = result.scalar_one_or_none()
+    
+    db.delete(file)
+    await db.commit()
+
+    return file
+
+async def delete_file_details(id: int, db: AsyncSession) -> FileDetailsResponse:
+    result = await db.execute(select(FileDetail).where(FileDetail.id == id))
+    file_details = result.scalar_one_or_none()
+    
+    db.delete(file_details)
+    await db.commit()
+    
+    return file_details
+
+
+
+
+"""
+===========================================
+            *Helper Functions*
+===========================================
+"""
+async def rollback(db: AsyncSession):
+    await db.rollback()
