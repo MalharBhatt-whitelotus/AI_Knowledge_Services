@@ -14,11 +14,17 @@ import file_repository as repo
 from .file_schemas import FileRequest, FileDetailsResponse
 from .file_config import settings
 
+
+"""
+===========================================
+            *Create File Method*
+===========================================
+"""
 async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsResponse:
     """
     Creates and store a PDF file in the database.
 
-    Validates that the file name is unique abd that the uploaded file is in PDF format. The file content is then read and stored in the database. Returns the details of the newly created file.
+    Validates that the file name is unique and that the uploaded file is in PDF format. The file content is then read and stored in the database. Returns the details of the newly created file.
 
     Args:
         file_data (FileRequest): Request object containing the file name and uploaded PDF file.
@@ -57,6 +63,7 @@ async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsRe
     if await repo.get_file_detials_by_filename(file_detail["stored_filename"]):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File details already exist.")
     file_details = await repo.add_file_details(
+        result.id,
         file_data.file_name, 
         file_detail["file_path"], 
         file_detail["stored_filename"], 
@@ -68,6 +75,51 @@ async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsRe
         )
     
     return file_details
+
+
+"""
+===========================================
+            *Delete File Method*
+===========================================
+"""
+async def delete_file(id: int, db: AsyncSession) -> FileDetailsResponse:
+    """
+    Deletes a PDF file from the database and also from the Directory.
+
+    Validates that the file exists in database as well as in the directory. The file is then read and deleted from the database and from the directory. Returns the details of the deleted file.
+
+    Args:
+        id (int): Request object containing the file ID.
+        db (AsyncSession): SQLAlchemy asynchronous database session.
+    
+    Returns:
+        FileDetailsResponse: Information about the deleted file.
+
+    Raises:
+        HTTPException:
+            - 404 Not Found: If a file with the same file id doesnot exists.
+            - 404 Not Found: If the file details with the same id doesnot exists.
+            - 501 Not Implemented: If the file or file details are not deleted.  
+    """
+
+    file_details = await repo.get_file_details_by_id(id, db)
+
+    if not await file_details:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+    
+    file_id = file_details["file_id"]
+
+    if not await repo.get_file_by_id(file_id, db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File details not found.")
+    
+    try:
+        await repo.delete_file(file_id, db)
+        deleted_file_details = await repo.delete_file_details(id, db)
+    except:
+        await repo.rollback()
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="File not deleted.")
+
+    return deleted_file_details | None 
 
 
 
