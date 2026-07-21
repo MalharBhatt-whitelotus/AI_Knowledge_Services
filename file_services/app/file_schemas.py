@@ -7,7 +7,7 @@ class FileRequest(BaseModel):
     file: UploadFile = Field(...)
     uploaded_at: datetime = Field(...) 
 
-class FileRespond(BaseModel):
+class FileResponse(BaseModel):
     id: int = Field(...)
     file_name: str = Field(..., min_length=1, max_length=100)
     file: UploadFile = Field(...)
