@@ -20,3 +20,4 @@ class FileDetail(Base):
     uploaded_at = Column(DateTime, nullable=False)
     file_size = Column(Integer, nullable=False)
     content = Column(Text)
+    summary = Column(String)

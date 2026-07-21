@@ -29,3 +29,4 @@ class FileDetailsResponse(BaseModel):
     uploaded_at: datetime = Field(...)
     filesize: int = Field(..., le=10)
     content: str = Field(...)
+    summery: str

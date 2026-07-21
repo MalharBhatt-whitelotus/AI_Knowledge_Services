@@ -48,17 +48,22 @@ async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsRe
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File not created.")
     
     file_detail = _fetch_file_details(file_data)
-
+    summary = _generate_summary(file_data.file_name, 
+        file_detail["file_path"], 
+        file_detail["stored_filename"], 
+        uploaded_at, 
+        file_detail["file_size"], 
+        file_detail["content"])
     if await repo.get_file_detials_by_filename(file_detail["stored_filename"]):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File details already exist.")
-    
     file_details = await repo.add_file_details(
         file_data.file_name, 
         file_detail["file_path"], 
         file_detail["stored_filename"], 
         uploaded_at, 
         file_detail["file_size"], 
-        file_detail["content"], 
+        file_detail["content"],
+        summary, 
         db
         )
     
@@ -107,3 +112,23 @@ def _extract_text(file) -> str:
     for page in doc:
         text += page.get_text()
     return text
+
+def _generate_summary(
+        file_name: str,
+        file_path: str,
+        stored_filename: str,
+        uploaded_at: datetime,
+        file_size: int,
+        content: str
+) -> str:
+    summary = ""
+
+    # Basic Information
+    summary += f"The document is named {file_name}."
+    summary += f" And it is stored as {stored_filename}."
+    summary += f" It is stored at {file_path}"
+    summary += " It is a PDF document."
+    summary += f" The file size is {file_size}."
+    summary += f" It was uploaded on {uploaded_at}."
+    summary += " Text has been successfully extracted and is available for AI-based querying."
+    summery += f"{'-'*30}\nTHE CONTENTS OF THE FILE ARE:\n{'-'*30}\n{content}"
