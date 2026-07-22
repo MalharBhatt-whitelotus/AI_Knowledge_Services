@@ -107,6 +107,11 @@ async def delete_file_details(id: int, db: AsyncSession) -> FileDetailsResponse:
     return file_details
 
 
+async def get_details_of_all_files(db: AsyncSession) -> list[FileDetailsResponse]:
+    result = await db.execute(select(FileDetail))
+    details = result.scalars().all()
+
+    return details
 
 
 """
