@@ -37,5 +37,20 @@ async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)
 
 @file_router.delete("/delete/{id}", status_code=200)
 async def delete_file(file_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Delete and remove the old file record.
+
+    Removes the required file entry in the database using the provided file information and returns the deleted file details.
+
+    Args:
+        file_id (int): Request variable containing the file ID.
+        db (AsyncSession): SQLAlchemy database async session provided through dependency injection.
+
+    Returns:
+        FileDetailsResponse: Details of the deleted file.
+    
+    Raises:
+        HTTPException: If the file cannot be created due to validation or database-realated errors.
+    """
     result = await service.delete_file(id, db)
     return result
