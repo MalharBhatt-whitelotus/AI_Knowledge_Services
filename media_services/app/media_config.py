@@ -9,6 +9,7 @@ class MediaSettings(BaseSettings):
 
     DATABASE_URL: str
     UPLOAD_DIR: str
+    MEDIA_TYPES: dict[str, str]
 
     model_config = SettingsConfigDict(
         env_file= BASE_DIR / ".env",

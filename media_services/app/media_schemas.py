@@ -1,20 +1,21 @@
-from sqlalchemy import Enum, LargeBinary
+from enum import Enum
 from datetime import datetime
 from pydantic import BaseModel, Field
 
 class MediaType(str, Enum):
+    png = "png"
     mp3 = "mp3"
     mp4 = "mp4"
 
 class MediaRequest(BaseModel):
     id: int = Field(...)
     media_name: str = Field(..., min_length=1, max_length=100)
-    media: LargeBinary = Field(...)
+    media: bytes = Field(...)
 
 class MediaResponse(BaseModel):
     id: int
     media_name: str 
-    media: LargeBinary 
+    media: bytes 
 
 class MediaDetailRequest(BaseModel):
     id: int = Field(...)

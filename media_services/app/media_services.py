@@ -1,5 +1,6 @@
 import os
 import uuid
+import shutil
 from typing import Dict
 from datetime import datetime, timezone
 from fastapi import HTTPException, status, UploadFile
@@ -36,31 +37,30 @@ async def create_media(media_file: UploadFile, db: AsyncSession) -> MediaDetailR
             - 409 Conflict: If the media details couldnot be created in the database.
             - 409 Conflict: if either media or media_details is not stored in the database.    
     """
-
-    media_byte = media_file.read()
+    media_byte = await media_file.read()
     media_file.seek(0)
-    media_name = media_file.filename()
-    if repo.get_media_by_medianame(media_name, db):
+    media_name = media_file.filename
+    if await repo.get_media_by_medianame(media_name, db):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File already exists.")
     
     media_size = len(media_byte)
-    type = media_file.content_type() #! this will give error cause of response model but for now let it be....
-    if type not in ["audio/mpeg", "video/mp4"]:
+    
+    media_type = settings.MEDIA_TYPES.get(media_file.content_type) 
+    if media_type is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is not in audio/mpeg or video/mp4 format")
-    media_type = "mp3" if type == "audio/mpeg" else "mp4"
     uploaded_at = datetime.now(timezone.utc)
     
     try:
-        media_name_path = _save_media(media_file, media_type)
-        media = await repo.add_media_file(media_name, media_byte)
+        media_name_path = _save_media(media_byte, media_type)
+        media = await repo.add_media_file(media_name, media_byte, db)
         if not media:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File not created.")
-        
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File not created.")
+            
         summary = _generate_summary(media, media_size, media_type, media_name_path["stored_medianame"],media_name_path["media_path"],uploaded_at)
 
         media_details = await repo.add_media_details(media, media_name_path["stored_medianame"], media_name_path["media_path"], media_size, media_type, uploaded_at, summary, db)
         if not media_details:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="file_details not created.")
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="file_details not created.")
     except Exception as e:
         await repo.rollback(db)
         _delete_media(media_name_path["media_path"])
@@ -80,12 +80,14 @@ async def create_media(media_file: UploadFile, db: AsyncSession) -> MediaDetailR
 ===========================================
 """
 
-def _save_media(media_file: UploadFile, media_type: str)-> Dict[str, str]:
+def _save_media(media_bytes: bytes, media_type: str)-> Dict[str, str]:
     os.makedirs(settings.UPLOAD_DIR,exist_ok=True)
 
     stored_medianame = f"{uuid.uuid4()}.{media_type}"
     media_path = os.path.join(settings.UPLOAD_DIR, stored_medianame)
 
+    with open(media_path, "wb") as buffer:
+        buffer.write(media_bytes)
     return {"stored_medianame": stored_medianame, "media_path": media_path}
 
 def _delete_media(media_path: str) -> bool:

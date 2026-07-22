@@ -26,7 +26,7 @@ async def add_media_details(media: MediaResponse, stored_name: str, media_path: 
     media_details = MediaDetail(
         media_id = media.id,
         media_name = media.media_name,
-        stored_name = stored_name,
+        stored_medianame = stored_name,
         media_path = media_path,
         media_size = media_size,
         media_type = media_type,
