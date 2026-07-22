@@ -21,6 +21,7 @@ class FileDetailsRequest(BaseModel):
     uploaded_at: datetime = Field(...)
     filesize: int = Field(..., le=10)
     content: str = Field(...)
+    summary: str = Field(...)
 
 class FileDetailsResponse(BaseModel):
     id: int
