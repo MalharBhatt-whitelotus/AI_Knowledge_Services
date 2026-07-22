@@ -119,7 +119,38 @@ async def delete_file(id: int, db: AsyncSession) -> FileDetailsResponse:
         await repo.rollback()
         raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="File not deleted.")
 
-    return deleted_file_details | None 
+    return deleted_file_details
+
+
+
+"""
+===========================================
+    *Get Details of all Files Method*
+===========================================
+"""
+async def get_details_of_all_files(db: AsyncSession) -> list[FileDetailsResponse]:
+    """
+    Get all the details from the database.
+
+    Read and fetch all the exisiting details from the database. Returns the fetched deatils to the routes.
+
+    Args:
+        db (AsyncSession): SQLAlchemy asynchronous database session.
+    
+    Returns:
+        details (list[FileDetailsResponse]): List of Information about the stored details of all files.
+    
+    Raises:
+        HTTPException:
+            - 404 Not Found: If the details doesnot exists.
+    """
+    details = await repo.get_details_of_all_files(db)
+    if not details:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Details of file not found.")
+    return details
+
+
+
 
 
 
