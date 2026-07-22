@@ -11,13 +11,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import file_repository as repo
-from .file_schemas import FileRequest, FileDetailsResponse
+from .file_schemas import FileRequest, FileDetailsRequest, FileDetailsResponse
 from .file_config import settings
 
 
 """
 ===========================================
-            *Create File Method*
+           * Create File Method *
 ===========================================
 """
 async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsResponse:
@@ -26,14 +26,14 @@ async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsRe
 
     Validates that the file name is unique and that the uploaded file is in PDF format. The file content is then read and stored in the database. Returns the details of the newly created file.
 
-    Args:
+    *Args:
         file_data (FileRequest): Request object containing the file name and uploaded PDF file.
         db (AsyncSession): SQLAlchemy asynchronous database session.
     
-    Returns:
+    ?Returns:
         FileDetailsResponse: Information about the stored file.
 
-    Raises:
+    !Raises:
         HTTPException:
             - 409 Conflict: If a file with the same name already exists.
             - 400 Bad Request: Id the uploaded file is not a PDF.
@@ -79,7 +79,7 @@ async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsRe
 
 """
 ===========================================
-            *Delete File Method*
+           * Delete File Method *
 ===========================================
 """
 async def delete_file(id: int, db: AsyncSession) -> FileDetailsResponse:
@@ -88,14 +88,14 @@ async def delete_file(id: int, db: AsyncSession) -> FileDetailsResponse:
 
     Validates that the file exists in database as well as in the directory. The file is then read and deleted from the database and from the directory. Returns the details of the deleted file.
 
-    Args:
+    *Args:
         id (int): Request object containing the file ID.
         db (AsyncSession): SQLAlchemy asynchronous database session.
     
-    Returns:
+    ?Returns:
         FileDetailsResponse: Information about the deleted file.
 
-    Raises:
+    !Raises:
         HTTPException:
             - 404 Not Found: If a file with the same file id doesnot exists.
             - 404 Not Found: If the file details with the same id doesnot exists.
@@ -125,7 +125,7 @@ async def delete_file(id: int, db: AsyncSession) -> FileDetailsResponse:
 
 """
 ===========================================
-    *Get Details of all Files Method*
+    * Get Details of all Files Method *
 ===========================================
 """
 async def get_details_of_all_files(db: AsyncSession) -> list[FileDetailsResponse]:
@@ -134,13 +134,13 @@ async def get_details_of_all_files(db: AsyncSession) -> list[FileDetailsResponse
 
     Read and fetch all the exisiting details from the database. Returns the fetched deatils to the routes.
 
-    Args:
+    *Args:
         db (AsyncSession): SQLAlchemy asynchronous database session.
     
-    Returns:
+    ?Returns:
         details (list[FileDetailsResponse]): List of Information about the stored details of all files.
     
-    Raises:
+    !Raises:
         HTTPException:
             - 404 Not Found: If the details doesnot exists.
     """
@@ -151,12 +151,44 @@ async def get_details_of_all_files(db: AsyncSession) -> list[FileDetailsResponse
 
 
 
+"""
+===========================================
+    * Update Details of File Method *
+===========================================
+"""
+async def update_file_details(id: int, details: FileRequest, db: AsyncSession) -> FileDetailsResponse:
+    """
+    Update the details of file in the database.
+
+    Update the required file entry in the database using the provided file information and returns the details of the updated file.
+
+    *Args:
+        id (int): Request variable containing file_detail ID.
+        details (FileDetailsRequest): Request Body containing file updated details.
+        db (AsyncSession): SQLAlchemy asynchronous database session.
+    
+    ?Returns:
+        updated_details (FileDetailsResponse): Response body containing updated file details.
+    
+    !Raises:
+        HTTPException:
+            - 404 Not Found: If the file detail with the same file_detail id doesnot exists.
+            - 409 Conflict: If the file details are not updated.
+    """
+    if not await repo.get_file_details_by_id(id, db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File details not found.")
+
+    updated_details = await repo.update_file_details(id, details, db)
+    if not updated_details:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File details not updated.")
+    return updated_details
+
 
 
 
 """
 ===========================================
-            *Helper Functions*
+           * Helper Functions *
 ===========================================
 """
 def _fetch_file_details(file: UploadFile) -> Dict[str: Any]:
