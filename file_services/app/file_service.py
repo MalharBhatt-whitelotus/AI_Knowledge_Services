@@ -10,7 +10,7 @@ from fastapi import HTTPException, status, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import file_repository as repo
+import file_services.app.file_repository as repo
 from .file_schemas import FileRequest, FileDetailsRequest, FileDetailsResponse
 from .file_config import settings
 
@@ -20,7 +20,7 @@ from .file_config import settings
            * Create File Method *
 ===========================================
 """
-async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsResponse:
+async def create_file(file_data: UploadFile, db: AsyncSession) -> FileDetailsResponse:
     """
     Creates and store a PDF file in the database.
 
@@ -40,40 +40,49 @@ async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsRe
             - 409 Conflict: If the file couldnot be created in the database.
             - 409 Conflict: If a file with the same name already exists in the details.    
     """
-    if await repo.get_file_by_filename(file_data.file_name, db):
+    if await repo.get_file_by_filename(file_data.filename, db):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File already exists.")
     
-    if file_data.file.content_type != "application/pdf":
+    if file_data.content_type != "application/pdf":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only PDF Files are allowed.")
     
-    pdf_byte = await file_data.file.read()
+    pdf_byte = file_data.file.read()
+    file_data.file.seek(0)
     uploaded_at = datetime.now()
-    result = await repo.create_file(file_data.file_name, pdf_byte, uploaded_at, db)
-    
-    if not result:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File not created.")
-    
-    file_detail = _fetch_file_details(file_data)
-    summary = _generate_summary(file_data.file_name, 
+    file_size = len(pdf_byte)
+    file_detail = await _fetch_file_details(file_data)
+
+    summary = _generate_summary(file_data.filename, 
         file_detail["file_path"], 
         file_detail["stored_filename"], 
         uploaded_at, 
-        file_detail["file_size"], 
+        file_size, 
         file_detail["content"])
-    if await repo.get_file_detials_by_filename(file_detail["stored_filename"]):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File details already exist.")
-    file_details = await repo.add_file_details(
-        result.id,
-        file_data.file_name, 
-        file_detail["file_path"], 
-        file_detail["stored_filename"], 
-        uploaded_at, 
-        file_detail["file_size"], 
-        file_detail["content"],
-        summary, 
-        db
-        )
     
+    if await repo.get_file_detials_by_filename(file_detail["stored_filename"], db):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File details already exist.")
+    
+    try:
+        result = await repo.create_file(file_data.filename, pdf_byte, uploaded_at, db)
+        if not result:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File not created.")
+        
+        file_details = await repo.add_file_details(
+            result.id,
+            file_data.filename, 
+            file_detail["file_path"], 
+            file_detail["stored_filename"], 
+            uploaded_at, 
+            file_size, 
+            file_detail["content"],
+            summary, 
+            db
+            )
+        
+    except Exception as e:
+        db.rollback(db)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
     return file_details
 
 
@@ -104,10 +113,10 @@ async def delete_file(id: int, db: AsyncSession) -> FileDetailsResponse:
 
     file_details = await repo.get_file_details_by_id(id, db)
 
-    if not await file_details:
+    if not file_details:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
     
-    file_id = file_details["file_id"]
+    file_id = file_details.file_id
 
     if not await repo.get_file_by_id(file_id, db):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File details not found.")
@@ -191,12 +200,12 @@ async def update_file_details(id: int, details: FileRequest, db: AsyncSession) -
            * Helper Functions *
 ===========================================
 """
-def _fetch_file_details(file: UploadFile) -> Dict[str: Any]:
+async def _fetch_file_details(file: UploadFile) -> Dict[str: Any]:
     file_details = _save_file(file)
     file_path = file_details["filepath"]
     stored_filename = file_details["stored_filename"]
 
-    content = _extract_text(file)
+    content = await _extract_text(file)
     filesize = _get_file_size(file_path)
 
     return {
@@ -217,13 +226,11 @@ def _save_file(file: UploadFile) -> Dict[str: str]:
 
     return {"stored_filename": filename, "filepath": filepath}
 
-def _get_file_size(filepath: str) -> int:
-    size = os.path.getsize(filepath)
-    return size
-
-def _extract_text(file) -> str:
+async def _extract_text(file: UploadFile) -> str:
+    await file.seek(0)
+    pdf_bytes = await file.read()
+    doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     text = ""
-    doc = pymupdf.open(file)
     for page in doc:
         text += page.get_text()
     return text
@@ -246,4 +253,6 @@ def _generate_summary(
     summary += f" The file size is {file_size}."
     summary += f" It was uploaded on {uploaded_at}."
     summary += " Text has been successfully extracted and is available for AI-based querying."
-    summery += f"{'-'*30}\nTHE CONTENTS OF THE FILE ARE:\n{'-'*30}\n{content}"
+    summary += f"{'-'*30}\nTHE CONTENTS OF THE FILE ARE:\n{'-'*30}\n{content}"
+
+    return summary

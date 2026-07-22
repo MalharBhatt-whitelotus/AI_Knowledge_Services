@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, UploadFile, Depends
 
-import file_service as service
+import file_services.app.file_service as service
 from .file_database import get_db
 from .file_schemas import FileRequest, FileResponse, FileDetailsRequest, FileDetailsResponse
 
@@ -14,7 +14,7 @@ async def health_check():
     return {"status":"ok","service":"file_services"}
 
 @file_router.post("/upload", response_model=FileDetailsResponse, status_code=status.HTTP_201_CREATED)
-async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)) -> FileDetailsResponse:
+async def upload_file(file: UploadFile, db: AsyncSession = Depends(get_db)) -> FileDetailsResponse:
     """
     Upload and store a new file record.
 
@@ -32,7 +32,7 @@ async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)
         HTTPException: If the file cannot be created due to validation or
         database-related errors.
     """
-    result = await service.create_file(file_data = file_data, db = db)
+    result = await service.create_file(file_data = file, db = db)
     return result
 
 @file_router.delete("/delete/{id}", status_code=200)
