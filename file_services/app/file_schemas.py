@@ -19,8 +19,9 @@ class FileDetailsRequest(BaseModel):
     file_path: str = Field(..., min_length=1, max_length=100)
     stored_filename: str = Field(..., min_length=1, max_length=100)
     uploaded_at: datetime = Field(...)
-    filesize: int = Field(..., le=10)
+    file_size: int = Field(..., le=10)
     content: str = Field(...)
+    summary: str = Field(...)
 
 class FileDetailsResponse(BaseModel):
     id: int
@@ -29,6 +30,6 @@ class FileDetailsResponse(BaseModel):
     file_path: str 
     stored_filename: str 
     uploaded_at: datetime
-    filesize: int 
+    file_size: int 
     content: str
-    summery: str
+    summary: str
