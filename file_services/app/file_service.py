@@ -10,7 +10,7 @@ from fastapi import HTTPException, status, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import file_repository as repo
+import file_services.app.file_repository as repo
 from .file_schemas import FileRequest, FileDetailsRequest, FileDetailsResponse
 from .file_config import settings
 
@@ -20,7 +20,7 @@ from .file_config import settings
            * Create File Method *
 ===========================================
 """
-async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsResponse:
+async def create_file(file_data: UploadFile, db: AsyncSession) -> FileDetailsResponse:
     """
     Creates and store a PDF file in the database.
 
@@ -40,7 +40,7 @@ async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsRe
             - 409 Conflict: If the file couldnot be created in the database.
             - 409 Conflict: If a file with the same name already exists in the details.    
     """
-    if await repo.get_file_by_filename(file_data.file_name, db):
+    if await repo.get_file_by_filename(file_data.filename, db):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File already exists.")
     
     if file_data.file.content_type != "application/pdf":
@@ -48,7 +48,7 @@ async def create_file(file_data: FileRequest, db: AsyncSession) -> FileDetailsRe
     
     pdf_byte = await file_data.file.read()
     uploaded_at = datetime.now()
-    result = await repo.create_file(file_data.file_name, pdf_byte, uploaded_at, db)
+    result = await repo.create_file(file_data.filename, pdf_byte, uploaded_at, db)
     
     if not result:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File not created.")
