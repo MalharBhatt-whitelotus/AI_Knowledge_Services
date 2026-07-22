@@ -5,7 +5,7 @@ from fastapi import APIRouter, status, Depends
 
 import file_service as service
 from .file_database import get_db
-from .file_schemas import FileRequest, FileResponse, FileDetailsResponse
+from .file_schemas import FileRequest, FileResponse, FileDetailsRequest, FileDetailsResponse
 
 file_router = APIRouter(prefix="/file", tags=["files"])
 
@@ -21,14 +21,14 @@ async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)
     Creates a new file entry in the database using the provided file
     information and returns the created file details.
 
-    Args:
+    *Args:
         file_data (FileRequest): Request body containing the file metadata.
         db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
 
-    Returns:
+    ?Returns:
         FileResponse: Details of the newly created file.
 
-    Raises:
+    !Raises:
         HTTPException: If the file cannot be created due to validation or
         database-related errors.
     """
@@ -42,14 +42,14 @@ async def delete_file(id: int, db: AsyncSession = Depends(get_db)):
 
     Removes the required file entry in the database using the provided file information and returns the deleted file details.
 
-    Args:
-        file_id (int): Request variable containing the file ID.
+    *Args:
+        id (int): Request variable containing the file ID.
         db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
 
-    Returns:
+    ?Returns:
         FileDetailsResponse: Details of the deleted file.
     
-    Raises:
+    !Raises:
         HTTPException: If the file cannot be created due to validation or database-realated errors.
     """
     result = await service.delete_file(id, db)
@@ -62,14 +62,39 @@ async def get_details_of_all_files(db: AsyncSession = Depends(get_db)):
 
     Fetch the list of all details of the files from the database and returns the list of file details.
 
-    Args:
+    *Args:
         db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
     
-    Returns:
+    ?Returns:
         details (List[FileDetailsResponse]): Details of all the stored files.
 
-    Raises:
+    !Raises:
         HTTPEXception: If the file details cannot be fetched due to validation or database-related errors.
     """
     details = await service.get_details_of_all_files(db)
     return details
+
+@file_router.patch("/update_details/{id}", response_model=FileDetailsResponse)
+async def update_file_details(
+    id: int, 
+    details: FileDetailsRequest, 
+    db: AsyncSession = Depends(get_db)
+    ):
+    """
+    Update the details of file in the database.
+
+    Update the required file entry in the database using the provided file information and returns the details of the updated file.
+
+    *Args:
+        id (int): Request variable containing file_detail ID.
+        details (FileDetailsRequest): Request Body containing file updated details.
+        db (AsnycSession): SQLAlchemy asynchronous database session provided through dependency injection.
+
+    ?Returns:
+        response (FileDetailsResponse): Record of the updated file_details.
+    
+    !Raises:
+        HTTPException: If the file details cannot be updated due to validation or database-related errors.
+    """
+    response = await service.update_file_details(id, details, db)
+    return response
