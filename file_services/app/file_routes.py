@@ -23,7 +23,7 @@ async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)
 
     Args:
         file_data (FileRequest): Request body containing the file metadata.
-        db (AsyncSession): SQLAlchemy database async session provided through dependency injection.
+        db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
 
     Returns:
         FileResponse: Details of the newly created file.
@@ -36,6 +36,40 @@ async def upload_file(file_data: FileRequest, db: AsyncSession = Depends(get_db)
     return result
 
 @file_router.delete("/delete/{id}", status_code=200)
-async def delete_file(file_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_file(id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Delete and remove the old file record.
+
+    Removes the required file entry in the database using the provided file information and returns the deleted file details.
+
+    Args:
+        file_id (int): Request variable containing the file ID.
+        db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
+
+    Returns:
+        FileDetailsResponse: Details of the deleted file.
+    
+    Raises:
+        HTTPException: If the file cannot be created due to validation or database-realated errors.
+    """
     result = await service.delete_file(id, db)
     return result
+
+@file_router.get("/get_details/of_all_files", response_model=list[FileDetailsResponse])
+async def get_details_of_all_files(db: AsyncSession = Depends(get_db)):
+    """
+    Get details of the stored files.
+
+    Fetch the list of all details of the files from the database and returns the list of file details.
+
+    Args:
+        db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
+    
+    Returns:
+        details (List[FileDetailsResponse]): Details of all the stored files.
+
+    Raises:
+        HTTPEXception: If the file details cannot be fetched due to validation or database-related errors.
+    """
+    details = await service.get_details_of_all_files(db)
+    return details
