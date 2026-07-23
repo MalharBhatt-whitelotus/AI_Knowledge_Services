@@ -1,7 +1,7 @@
 from datetime import datetime
-from sqlalchemy import select, LargeBinary, text, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import BackgroundTasks
+from sqlalchemy import select, LargeBinary, text, func
+
 from .media_models import Media, MediaDetail
 from .media_schemas import  MediaResponse, MediaDetailRequest, MediaDetailResponse
 
