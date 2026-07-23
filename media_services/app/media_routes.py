@@ -1,10 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, UploadFile, Depends
 
-import media_services.app.media_services as service
-
 from .media_database import get_db
 from .media_schemas import MediaDetailRequest, MediaDetailResponse
+
+import media_services.app.media_services as service
 
 media_router = APIRouter(prefix="/media", tags=["medias"])
 
