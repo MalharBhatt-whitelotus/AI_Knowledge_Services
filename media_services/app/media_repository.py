@@ -1,7 +1,7 @@
 from datetime import datetime
-from sqlalchemy import select, LargeBinary
+from sqlalchemy import select, LargeBinary, text, func
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from fastapi import BackgroundTasks
 from .media_models import Media, MediaDetail
 from .media_schemas import  MediaResponse,MediaDetailResponse
 
@@ -52,6 +52,8 @@ async def delete_media_file(media_id: int, db: AsyncSession) -> MediaResponse:
     await db.delete(media)
     await db.commit()
 
+    await reset_id_media(db, "medias")
+
     return media
 
 
@@ -61,7 +63,24 @@ async def delete_media_details(id: int, db: AsyncSession) -> MediaDetailResponse
     await db.delete(media_details)
     await db.commit()
 
+    await reset_id_media(db, "media_details")
+
     return media_details
+
+
+async def get_all_media_details(db: AsyncSession)-> list[MediaDetailResponse]:
+    result = await db.execute(select(MediaDetail))
+    media_details = result.scalars().all()
+    return media_details
+
+
+
+
+"""
+===========================================
+           * Helper Functions *
+===========================================
+"""
 
 
 async def rollback(db: AsyncSession):
@@ -69,3 +88,13 @@ async def rollback(db: AsyncSession):
     await db.rollback()
     await db.execute(select(MediaDetail))
     await db.rollback()
+
+async def reset_id_media(db: AsyncSession, table_name) -> None:
+    if table_name == "medias":
+        count = await db.scalar(select(func.count()).select_from(Media))
+    if table_name == "media_details":
+        count = await db.scalar(select(func.count()).select_from(MediaDetail))
+
+    if count == 0:
+        await db.execute(text(f"ALTER SEQUENCE {table_name}_id_seq RESTART WITH 1"))
+        await db.commit()
