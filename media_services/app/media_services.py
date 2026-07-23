@@ -37,21 +37,21 @@ async def create_media(media_file: UploadFile, db: AsyncSession) -> MediaDetailR
             - 409 Conflict: If the media details couldnot be created in the database.
             - 409 Conflict: if either media or media_details is not stored in the database.    
     """
-    media_byte = await media_file.read()
-    await media_file.seek(0)
-    media_name = media_file.filename
-
-    if await repo.get_media_by_medianame(media_name, db):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File already exists.")
-    
-    media_size = len(media_byte)
-    
-    media_type = settings.MEDIA_TYPES.get(media_file.content_type) 
-    if media_type is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is not in audio/mpeg or video/mp4 format")
-    uploaded_at = datetime.now(timezone.utc)
-    
     try:
+        media_byte = await media_file.read()
+        await media_file.seek(0)
+        media_name = media_file.filename
+
+        if await repo.get_media_by_medianame(media_name, db):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File already exists.")
+
+        media_size = len(media_byte)
+
+        media_type = settings.MEDIA_TYPES.get(media_file.content_type) 
+        if media_type is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is not in audio/mpeg or video/mp4 format")
+        uploaded_at = datetime.now(timezone.utc)
+
         media_name_path = _save_media(media_byte, media_type)
         media = await repo.add_media_file(media_name, media_byte, db)
         if not media:
@@ -62,10 +62,18 @@ async def create_media(media_file: UploadFile, db: AsyncSession) -> MediaDetailR
         media_details = await repo.add_media_details(media, media_name_path["stored_medianame"], media_name_path["media_path"], media_size, media_type, uploaded_at, summary, db)
         if not media_details:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="file_details not created.")
+    except HTTPException:
+        await repo.rollback(db)
+        raise
+
+    except OSError as exc:
+        await repo.rollback(db)
+        raise
+
     except Exception as e:
         await repo.rollback(db)
         _delete_media(media_name_path["media_path"])
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Media not created.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail= str(e))
     
     return media_details
 
@@ -94,20 +102,25 @@ async def delete_media(id: int, db: AsyncSession) -> MediaDetailResponse:
             - 404 Not Found: If the media_details with same id doesnot exists.
             - 409 Conflict: If the media not deleted from database nor from directory.
     """
-    details = await repo.get_media_by_id(id, db)
-    if not details:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media details not found")
-
-    if not await repo.get_media_by_medianame(details.media_name, db):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
-
     try:
+        details = await repo.get_media_by_id(id, db)
+        if not details:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media details not found")
+
+        if not await repo.get_media_by_medianame(details.media_name, db):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
+   
         await repo.delete_media_file(details.media_id, db)
         media_details = await repo.delete_media_details(id, db)
         _delete_media(media_details.media_path)
+    except HTTPException:
+        await repo.rollback(db)
+        raise
+    
     except Exception as e:
         await repo.rollback(db)
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    
     return media_details
 
 
@@ -132,9 +145,16 @@ async def get_all_media_details(db: AsyncSession) -> list[MediaDetailResponse]:
         HTTPException:
             - 404 Not Found: If any media details not exist.
     """
-    media_details = await repo.get_all_media_details(db)
-    if not media_details:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media details not exists.")
+    try:
+        media_details = await repo.get_all_media_details(db)
+        if not media_details:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media details not exists.")
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail= str(exc))
+    
     return media_details
 
 
