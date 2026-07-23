@@ -40,6 +40,29 @@ async def add_media_details(media: MediaResponse, stored_name: str, media_path: 
 
     return media_details
 
+async def get_media_by_id(id: int, db: AsyncSession) -> MediaDetailResponse | None:
+    result = await db.execute(select(MediaDetail).where(MediaDetail.id == id))
+    media_details = result.scalar_one_or_none()
+    return media_details
+
+
+async def delete_media_file(media_id: int, db: AsyncSession) -> MediaResponse:
+    result = await db.execute(select(Media).where(Media.id == media_id))
+    media = result.scalar_one_or_none()
+    await db.delete(media)
+    await db.commit()
+
+    return media
+
+
+async def delete_media_details(id: int, db: AsyncSession) -> MediaDetailResponse:
+    result = await db.execute(select(MediaDetail).where(MediaDetail.id == id))
+    media_details = result.scalar_one_or_none()
+    await db.delete(media_details)
+    await db.commit()
+
+    return media_details
+
 
 async def rollback(db: AsyncSession):
     await db.execute(select(Media))
