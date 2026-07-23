@@ -69,10 +69,45 @@ async def create_media(media_file: UploadFile, db: AsyncSession) -> MediaDetailR
     return media_details
 
 
+"""
+===========================================
+        * Delete Media Method *
+===========================================
+"""
+async def delete_media(id: int, db: AsyncSession) -> MediaDetailResponse:
+    """
+    Delete and remove a existing media record.
+    
+    Deletes a old media entry in the database using the provided media information and returns the deleted media details.
+    
+    *Args:
+        id (int): Request variable containing the media_details id.
+        db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
+    
+    ?Returns:
+        MediaResponse: Details of the newly created media.
+    
+    !Raises:
+        HTTPException:
+            - 404 Not Found: If the media file with same media id doesnot exists.
+            - 404 Not Found: If the media_details with same id doesnot exists.
+            - 409 Conflict: If the media not deleted from database nor from directory.
+    """
+    details = await repo.get_media_by_id(id, db)
+    if not details:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media details not found")
 
+    if not await repo.get_media_by_medianame(details.media_name, db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
 
-
-
+    try:
+        await repo.delete_media_file(details.media_id, db)
+        media_details = await repo.delete_media_details(id, db)
+        _delete_media(media_details.media_path)
+    except Exception as e:
+        await repo.rollback(db)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    return media_details
 
 """
 ===========================================
