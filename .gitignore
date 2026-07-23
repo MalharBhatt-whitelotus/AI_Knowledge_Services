@@ -3,3 +3,7 @@
 *.env.*
 *__pycache__
 *.db
+*.mp3
+*.mp4
+*.png
+*.wav

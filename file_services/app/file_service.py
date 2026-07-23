@@ -206,12 +206,10 @@ async def _fetch_file_details(file: UploadFile) -> Dict[str: Any]:
     stored_filename = file_details["stored_filename"]
 
     content = await _extract_text(file)
-    filesize = _get_file_size(file_path)
 
     return {
         "file_path": file_path,
         "stored_filename": stored_filename,
-        "file_size": filesize,
         "content": content
         }
 
