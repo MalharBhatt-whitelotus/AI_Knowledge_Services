@@ -40,3 +40,25 @@ async def upload_media(media_file: UploadFile, db: AsyncSession = Depends(get_db
     """
     result = await service.create_media(media_file, db)
     return result
+
+
+@media_router.delete("/delete/{id}",response_model=MediaDetailResponse)
+async def delelete_media(id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Delete and remove a existing media record.
+    
+    Deletes a old media entry in the database using the provided media information and returns the deleted media details.
+    
+    *Args:
+        id (int): Request variable containing the media_details id.
+        db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
+    
+    ?Returns:
+        MediaResponse: Details of the newly created media.
+    
+    !Raises:
+        HTTPException: If the media cannot be created due to validation or
+        database-related errors.
+    """
+    result = await service.delete_media(id, db)
+    return result
