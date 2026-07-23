@@ -78,14 +78,14 @@ async def delete_media(id: int, db: AsyncSession) -> MediaDetailResponse:
     """
     Delete and remove a existing media record.
     
-    Deletes a old media entry in the database using the provided media information and returns the deleted media details.
+    Deletes an old media entry in the database using the provided media information and returns the deleted media details.
     
     *Args:
         id (int): Request variable containing the media_details id.
         db (AsyncSession): SQLAlchemy asynchronous database session provided through dependency injection.
     
     ?Returns:
-        MediaResponse: Details of the newly created media.
+        MediaDetialResponse: Details of the deleted media.
     
     !Raises:
         HTTPException:
