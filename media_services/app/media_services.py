@@ -8,7 +8,7 @@ from fastapi import HTTPException, status, UploadFile
 
 from .media_config import settings
 import media_services.app.media_repository as repo
-from .media_schemas import MediaRequest, MediaDetailResponse
+from .media_schemas import MediaRequest, MediaDetailRequest, MediaDetailResponse
 
 
 """
@@ -138,7 +138,48 @@ async def get_all_media_details(db: AsyncSession) -> list[MediaDetailResponse]:
     return media_details
 
 
+async def update_media_details(id: int, details: MediaDetailRequest, db: AsyncSession):
+    """
+    Update the details of an existing media record.
 
+    Updates the metadata of the specified media file using the provided
+    information and returns the updated media details.
+
+    *Args:
+        id (int): Unique identifier of the media record to update.
+        details (MediaDetailRequest): Request body containing the updated
+            media details.
+        db (AsyncSession): SQLAlchemy asynchronous database session
+            provided through dependency injection.
+
+    ?Returns:
+        MediaDetailResponse: The updated media details.
+
+    !Raises:
+        HTTPException:
+            - 404 Not Found: If the specified media record does not exist.
+            - 409 Conflict: If the media details are not updated in the database.
+    """
+    if not await repo.get_media_by_id(id, db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media details not found.")
+
+    try: 
+        media_details = await repo.update_media_details(id, details, db)
+        if not media_details:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Media details not updated.")
+
+        media = await repo.update_media_file(media_details, db)
+        if not media:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Media not updated..")
+    except HTTPException:
+        await repo.rollback(db)
+        raise
+
+    except Exception as exc:
+        await repo.rollback(db)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail= str(exc))
+    
+    return media_details    
 
 
 
