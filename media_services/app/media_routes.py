@@ -43,7 +43,7 @@ async def upload_media(media_file: UploadFile, db: AsyncSession = Depends(get_db
 
 
 @media_router.delete("/delete/{id}",response_model=MediaDetailResponse)
-async def delelete_media(id: int, db: AsyncSession = Depends(get_db)):
+async def delete_media(id: int, db: AsyncSession = Depends(get_db)):
     """
     Delete and remove a existing media record.
     
