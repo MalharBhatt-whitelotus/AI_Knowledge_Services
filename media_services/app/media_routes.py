@@ -111,3 +111,23 @@ async def update_media_details(id: int, details: MediaDetailRequest, db: AsyncSe
     """
     result = await service.update_media_details(id, details, db)
     return result
+
+@media_router.get("/get_all_details_by_id/{id}", response_model=MediaDetailResponse)
+async def get_media_by_id(id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Get the details of the required media.
+
+    Get the details of the media which has same id as the given id and returns the details.
+
+    *Args:
+        id (int): Unique identifier of the media record to fetch.
+        db (AsyncSession): SQLALchemy asynchronous database session provided through dependency injection.
+
+    ?Returns:
+        MediaDetialResponse: The fetched media detials.
+    
+    !Raises:
+        HTTPException: If an error occurs while retrieving the media detials from the database.
+    """
+    result = await service.get_media_by_id(id, db)
+    return result
