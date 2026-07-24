@@ -35,7 +35,9 @@ async def create_media(media_file: UploadFile, db: AsyncSession) -> MediaDetailR
             - 400 Bad Request: Id the uploaded media is not a mp3 nor a mp4.
             - 409 Conflict: If the media couldnot be created in the database.
             - 409 Conflict: If the media details couldnot be created in the database.
-            - 409 Conflict: if either media or media_details is not stored in the database.    
+            - 409 Conflict: if either media or media_details is not stored in the database. 
+            - 500 Internal Server Error: If an error occurs from the database.
+        OSError: If the file is not properly saved in the defined local directory.   
     """
     try:
         media_byte = await media_file.read()
@@ -101,6 +103,7 @@ async def delete_media(id: int, db: AsyncSession) -> MediaDetailResponse:
             - 404 Not Found: If the media file with same media id doesnot exists.
             - 404 Not Found: If the media_details with same id doesnot exists.
             - 409 Conflict: If the media not deleted from database nor from directory.
+            - 500 Internal Server Error: If an error occurs from the database.
     """
     try:
         details = await repo.get_media_by_id(id, db)
@@ -144,6 +147,7 @@ async def get_all_media_details(db: AsyncSession) -> list[MediaDetailResponse]:
     !Raises:
         HTTPException:
             - 404 Not Found: If any media details not exist.
+            - 500 Internal Server Error: If an error occurs from the database.
     """
     try:
         media_details = await repo.get_all_media_details(db)
@@ -158,6 +162,11 @@ async def get_all_media_details(db: AsyncSession) -> list[MediaDetailResponse]:
     return media_details
 
 
+"""
+===========================================
+      * Update Media Details Method *
+===========================================
+"""
 async def update_media_details(id: int, details: MediaDetailRequest, db: AsyncSession):
     """
     Update the details of an existing media record.
@@ -179,6 +188,7 @@ async def update_media_details(id: int, details: MediaDetailRequest, db: AsyncSe
         HTTPException:
             - 404 Not Found: If the specified media record does not exist.
             - 409 Conflict: If the media details are not updated in the database.
+            - 500 Internal Server Error: If an error occurs from the database.
     """
     if not await repo.get_media_by_id(id, db):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media details not found.")
@@ -200,6 +210,46 @@ async def update_media_details(id: int, details: MediaDetailRequest, db: AsyncSe
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail= str(exc))
     
     return media_details    
+
+
+"""
+===========================================
+    * Get Media Details By ID Method *
+===========================================
+"""
+async def get_media_by_id(id: int, db: AsyncSession) -> MediaDetailResponse:
+    """
+    Get the details of the required media.
+
+    Get the details of the media which has same id as the given id and returns the details.
+
+    *Args:
+        id (int): Unique identifier of the media record to fetch.
+        db (AsycSession): SQLAlchemy asychronous database session provided through dependency injection.
+    
+    ?Returns:
+        MediaDetailResponse: The fetched media details.
+    
+    !Raises:
+        HTTPException:
+            - 404 Not Found: If the media with the same ID doesnot exists.
+            - 500 Internal Server Error: If an error occurs from the database.
+    """
+    try:
+        media_details = await repo.get_media_by_id(id, db)
+        if not media_details:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media Detials not found.")
+        return media_details
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail= str(exc))
+
+
+
+
 
 
 
